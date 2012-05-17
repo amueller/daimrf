@@ -1,4 +1,4 @@
-from daicrf import crf_map
+from daicrf import potts_crf
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -6,9 +6,12 @@ x = np.ones((10, 10))
 x[:, 5:] = -1
 x_noisy = x + np.random.normal(0, 0.8, size=x.shape)
 x_thresh = x_noisy > .0
-plt.matshow(x)
-plt.matshow(x_noisy)
-plt.matshow(x_thresh)
+plt.subplot(141)
+plt.imshow(x)
+plt.subplot(142)
+plt.imshow(x_noisy)
+plt.subplot(143)
+plt.imshow(x_thresh)
 
 inds = np.arange(x.size).reshape(x.shape)
 horz = np.c_[inds[:, :-1].ravel(), inds[:, 1:].ravel()]
@@ -20,6 +23,7 @@ edges = np.vstack([horz, vert])
 unaries = x_noisy.ravel()
 unaries = np.c_[np.exp(-unaries), np.exp(unaries)]
 
-result = crf_map(unaries, edges, 1.1)
-plt.matshow(result.reshape(x.shape))
+result = potts_crf(unaries, edges, 1.1)
+plt.subplot(144)
+plt.imshow(result.reshape(x.shape))
 plt.show()
