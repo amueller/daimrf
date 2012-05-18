@@ -9,6 +9,7 @@
 
 using namespace dai;
 using namespace std;
+namespace bp = boost::python;
 
 typedef vector<int> edge;
 
@@ -27,7 +28,7 @@ void validate_unaries_edges(PyArrayObject* unaries, PyArrayObject* edges)
        throw runtime_error("Edges must be of size n_edges x 2.");
 }
 
-PyObject * mrf(PyArrayObject* unaries, PyArrayObject* edges, PyArrayObject* edge_potentials) {
+PyObject * mrf(PyArrayObject* unaries, PyArrayObject* edges, PyArrayObject* edge_potentials, size_t verbose) {
     // validate input
     validate_unaries_edges(unaries, edges);
     if (PyArray_NDIM(edge_potentials) != 2)
@@ -43,8 +44,8 @@ PyObject * mrf(PyArrayObject* unaries, PyArrayObject* edges, PyArrayObject* edge
     int n_edges = edges_dims[0];
     if ((edge_potential_dims[0] != n_states) or (edge_potential_dims[1] != n_states))
         throw runtime_error("Edge potentials must be n_classes x n_classes");
-
-    cout << "n_vertices: " << n_vertices << " n_states: " << n_states << " n_edges: " << n_edges << endl;
+    if (verbose > 0)
+        cout << "n_vertices: " << n_vertices << " n_states: " << n_states << " n_edges: " << n_edges << endl;
 
     vector<Var> vars;
     vector<Factor> factors;
@@ -68,7 +69,6 @@ PyObject * mrf(PyArrayObject* unaries, PyArrayObject* edges, PyArrayObject* edge
         Factor pairwise_factor(VarSet(vars[e0], vars[e1]));
         for (size_t i = 0; i < n_states; i++)
             for(size_t j = 0; j < n_states; j++){
-                cout << i << " " << j << " " << *((double*)PyArray_GETPTR2(edge_potentials, i, j)) << endl;
                 pairwise_factor.set(i + n_states * j, *((double*)PyArray_GETPTR2(edge_potentials, i, j)));
             }
         factors.push_back(pairwise_factor);
@@ -77,20 +77,19 @@ PyObject * mrf(PyArrayObject* unaries, PyArrayObject* edges, PyArrayObject* edge
     FactorGraph fg(factors);
     size_t maxiter = 10000;
     Real   tol = 1e-9;
-    size_t verb = 1;
 
     // Store the constants in a PropertySet object
     PropertySet opts;
     opts.set("maxiter",maxiter);  // Maximum number of iterations
     opts.set("tol",tol);          // Tolerance for convergence
-    opts.set("verbose",verb);     // Verbosity (amount of output generated)
+    opts.set("verbose",verbose);     // Verbosity (amount of output generated)
 
     BP mp(fg, opts("updates",string("SEQRND"))("logdomain",false)("inference",string("MAXPROD"))("damping",string("0.1")));
     mp.init();
     mp.run();
     vector<size_t> mpstate = mp.findMaximum();
-    
-    PyObject * map = PyArray_SimpleNew(1, (npy_intp*)&n_vertices, PyArray_INT);
+    npy_intp map_size = n_vertices;
+    PyObject * map = PyArray_SimpleNew(1, &map_size, PyArray_INT);
     if (map == NULL)
         throw runtime_error("Could not allocate output array.");
     for(size_t i = 0; i < n_vertices; i++){
@@ -100,7 +99,7 @@ PyObject * mrf(PyArrayObject* unaries, PyArrayObject* edges, PyArrayObject* edge
 }
 
 
-PyObject * potts_crf(PyArrayObject* unaries, PyArrayObject* edges, double edge_strength) {
+PyObject * potts_crf(PyArrayObject* unaries, PyArrayObject* edges, double edge_strength, size_t verbose) {
     // validate input
     validate_unaries_edges(unaries, edges);
     npy_intp* unaries_dims = PyArray_DIMS(unaries);
@@ -108,8 +107,8 @@ PyObject * potts_crf(PyArrayObject* unaries, PyArrayObject* edges, double edge_s
     int n_vertices = unaries_dims[0];
     int n_states = unaries_dims[1];
     int n_edges = edges_dims[0];
-
-    cout << "n_vertices: " << n_vertices << " n_states: " << n_states << " n_edges: " << n_edges << " edge strength: " << edge_strength << endl;
+    if (verbose > 0)
+        cout << "n_vertices: " << n_vertices << " n_states: " << n_states << " n_edges: " << n_edges << " edge strength: " << edge_strength << endl;
 
     vector<Var> vars;
     vector<Factor> factors;
@@ -137,19 +136,19 @@ PyObject * potts_crf(PyArrayObject* unaries, PyArrayObject* edges, double edge_s
     FactorGraph fg(factors);
     size_t maxiter = 10000;
     Real   tol = 1e-9;
-    size_t verb = 1;
 
     // Store the constants in a PropertySet object
     PropertySet opts;
     opts.set("maxiter",maxiter);  // Maximum number of iterations
     opts.set("tol",tol);          // Tolerance for convergence
-    opts.set("verbose",verb);     // Verbosity (amount of output generated)
+    opts.set("verbose",verbose);     // Verbosity (amount of output generated)
 
     BP mp(fg, opts("updates",string("SEQRND"))("logdomain",false)("inference",string("MAXPROD"))("damping",string("0.1")));
     mp.init();
     mp.run();
     vector<size_t> mpstate = mp.findMaximum();
     
+    npy_intp map_size = n_vertices;
     PyObject * map = PyArray_SimpleNew(1, (npy_intp*)&n_vertices, PyArray_INT);
     if (map == NULL)
         throw runtime_error("Could not allocate output array.");
@@ -165,9 +164,9 @@ void* extract_pyarray(PyObject* x)
 }
 
 BOOST_PYTHON_MODULE(daicrf){
-	boost::python::converter::registry::insert(
+    bp::converter::registry::insert(
 	    &extract_pyarray, boost::python::type_id<PyArrayObject>());
-    boost::python::def("potts_crf", potts_crf);
-    boost::python::def("mrf", mrf);
+    bp::def("potts_crf", potts_crf, (bp::arg("unaries"), bp::arg("egdges"), bp::arg("edge_strength"), bp::arg("verbose")=0));
+    bp::def("mrf", mrf, (bp::arg("unaries"), bp::arg("egdges"), bp::arg("edge_weights"), bp::arg("verbose")=0));
     import_array();
 }

@@ -34,6 +34,7 @@ def example_binary():
 
 
 def example_multinomial():
+    np.random.seed(45)
     unaries = np.zeros((10, 12, 3))
     unaries[:, :4, 0] = 1
     unaries[:, 4:8, 1] = 1
@@ -48,12 +49,19 @@ def example_multinomial():
     vert = np.c_[inds[:-1, :].ravel(), inds[1:, :].ravel()]
     edges = np.vstack([horz, vert])
     result = potts_crf(unaries_noisy, edges, 1.1)
-    plt.subplot(131)
+    binaries = np.eye(3) + np.ones((1, 1))
+    binaries[-1, 0] = 0
+    binaries[0, -1] = 0
+    print(binaries)
+    result_mrf = mrf(unaries_noisy, edges, np.exp(binaries))
+    plt.subplot(141)
     plt.imshow(x, interpolation="nearest")
-    plt.subplot(132)
+    plt.subplot(142)
     plt.imshow(x_thresh, interpolation="nearest")
-    plt.subplot(133)
+    plt.subplot(143)
     plt.imshow(result.reshape(x.shape), interpolation="nearest")
+    plt.subplot(144)
+    plt.imshow(result_mrf.reshape(x.shape), interpolation="nearest")
     plt.show()
 
 
