@@ -1,4 +1,4 @@
 daimrf
 ======
 
-Python interface for inference with LibDAI on 2d grid models.
+Python interface for inference with LibDAI.
