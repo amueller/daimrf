@@ -1,7 +1,8 @@
 #include <iostream>
 #include <vector>
 #include <dai/alldai.h>  // Include main libDAI header file
-#include <dai/bp.h>
+#include <dai/bp.h>     // believe propagation
+#include <dai/jtree.h>  // junction tree
 #include<boost/python.hpp>
 
 #define PY_ARRAY_UNIQUE_SYMBOL PyArrayDaiCRF
@@ -80,14 +81,18 @@ PyObject * mrf(PyArrayObject* unaries, PyArrayObject* edges, PyArrayObject* edge
 
     // Store the constants in a PropertySet object
     PropertySet opts;
-    opts.set("maxiter",maxiter);  // Maximum number of iterations
-    opts.set("tol",tol);          // Tolerance for convergence
-    opts.set("verbose",verbose);     // Verbosity (amount of output generated)
+    JTree jt( fg, opts("updates",string("HUGIN"))("inference",string("MAXPROD")));
+    jt.init();
+    jt.run();
+    vector<size_t> mpstate = jt.findMaximum();
+    //opts.set("maxiter",maxiter);  // Maximum number of iterations
+    //opts.set("tol",tol);          // Tolerance for convergence
+    //opts.set("verbose",verbose);     // Verbosity (amount of output generated)
 
-    BP mp(fg, opts("updates",string("SEQRND"))("logdomain",false)("inference",string("MAXPROD"))("damping",string("0.1")));
-    mp.init();
-    mp.run();
-    vector<size_t> mpstate = mp.findMaximum();
+    //BP mp(fg, opts("updates",string("SEQRND"))("logdomain",false)("inference",string("MAXPROD"))("damping",string("0.1")));
+    //mp.init();
+    //mp.run();
+    //vector<size_t> mpstate = mp.findMaximum();
     npy_intp map_size = n_vertices;
     PyObject * map = PyArray_SimpleNew(1, &map_size, PyArray_INT);
     if (map == NULL)
