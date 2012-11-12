@@ -1,4 +1,4 @@
-from daicrf import potts_crf, mrf
+from daicrf import potts_mrf, mrf
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -24,7 +24,7 @@ def example_binary():
     unaries = x_noisy.ravel()
     unaries = np.c_[np.exp(-unaries), np.exp(unaries)]
 
-    result = potts_crf(unaries, edges, 1.1)
+    result = potts_mrf(unaries, edges, 1.1)
     plt.subplot(144)
     plt.imshow(result.reshape(x.shape), interpolation='nearest')
 
@@ -48,7 +48,7 @@ def example_multinomial():
     horz = np.c_[inds[:, :-1].ravel(), inds[:, 1:].ravel()]
     vert = np.c_[inds[:-1, :].ravel(), inds[1:, :].ravel()]
     edges = np.vstack([horz, vert])
-    result = potts_crf(unaries_noisy, edges, 1.1)
+    result = potts_mrf(unaries_noisy, edges, 1.1)
     binaries = np.eye(3) + np.ones((1, 1))
     binaries[-1, 0] = 0
     binaries[0, -1] = 0

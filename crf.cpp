@@ -75,7 +75,7 @@ PyObject * mrf(PyArrayObject* unaries, PyArrayObject* edges, PyArrayObject* edge
     }
     
     FactorGraph fg(factors);
-    size_t maxiter = 10000;
+    size_t maxiter = 100;
     Real   tol = 1e-9;
 
     // Store the constants in a PropertySet object
@@ -99,7 +99,7 @@ PyObject * mrf(PyArrayObject* unaries, PyArrayObject* edges, PyArrayObject* edge
 }
 
 
-PyObject * potts_crf(PyArrayObject* unaries, PyArrayObject* edges, double edge_strength, size_t verbose) {
+PyObject * potts_mrf(PyArrayObject* unaries, PyArrayObject* edges, double edge_strength, size_t verbose) {
     // validate input
     validate_unaries_edges(unaries, edges);
     npy_intp* unaries_dims = PyArray_DIMS(unaries);
@@ -166,7 +166,7 @@ void* extract_pyarray(PyObject* x)
 BOOST_PYTHON_MODULE(daicrf){
     bp::converter::registry::insert(
 	    &extract_pyarray, boost::python::type_id<PyArrayObject>());
-    bp::def("potts_crf", potts_crf, (bp::arg("unaries"), bp::arg("egdges"), bp::arg("edge_strength"), bp::arg("verbose")=0));
+    bp::def("potts_mrf", potts_mrf, (bp::arg("unaries"), bp::arg("egdges"), bp::arg("edge_strength"), bp::arg("verbose")=0));
     bp::def("mrf", mrf, (bp::arg("unaries"), bp::arg("egdges"), bp::arg("edge_weights"), bp::arg("verbose")=0));
     import_array();
 }
