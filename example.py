@@ -64,5 +64,5 @@ def example_multinomial():
     plt.imshow(result_mrf.reshape(x.shape), interpolation="nearest")
     plt.show()
 
-
-example_multinomial()
+if __name__ == "__main__":
+    example_binary()
