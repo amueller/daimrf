@@ -78,13 +78,16 @@ PyObject * mrf(PyArrayObject* unaries, PyArrayObject* edges, PyArrayObject* edge
     FactorGraph fg(factors);
     size_t maxiter = 100;
     Real   tol = 1e-9;
+    vector<size_t> mpstate;
 
     // Store the constants in a PropertySet object
     PropertySet opts;
-    JTree jt( fg, opts("updates",string("HUGIN"))("inference",string("MAXPROD")));
-    jt.init();
-    jt.run();
-    vector<size_t> mpstate = jt.findMaximum();
+    {
+        JTree jt( fg, opts("updates",string("HUGIN"))("inference",string("MAXPROD")));
+        jt.init();
+        jt.run();
+        mpstate = jt.findMaximum();
+    }
     //opts.set("maxiter",maxiter);  // Maximum number of iterations
     //opts.set("tol",tol);          // Tolerance for convergence
     //opts.set("verbose",verbose);     // Verbosity (amount of output generated)
@@ -94,6 +97,7 @@ PyObject * mrf(PyArrayObject* unaries, PyArrayObject* edges, PyArrayObject* edge
     //mp.run();
     //vector<size_t> mpstate = mp.findMaximum();
     npy_intp map_size = n_vertices;
+    std::cout << " n_vertices: " << n_vertices << std::endl;
     PyObject * map = PyArray_SimpleNew(1, &map_size, PyArray_INT);
     if (map == NULL)
         throw runtime_error("Could not allocate output array.");
@@ -154,7 +158,7 @@ PyObject * potts_mrf(PyArrayObject* unaries, PyArrayObject* edges, double edge_s
     vector<size_t> mpstate = mp.findMaximum();
     
     npy_intp map_size = n_vertices;
-    PyObject * map = PyArray_SimpleNew(1, (npy_intp*)&n_vertices, PyArray_INT);
+    PyObject * map = PyArray_SimpleNew(1, &map_size, PyArray_INT);
     if (map == NULL)
         throw runtime_error("Could not allocate output array.");
     for(size_t i = 0; i < n_vertices; i++){
