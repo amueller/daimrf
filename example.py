@@ -15,7 +15,7 @@ def example_binary():
     plt.subplot(143)
     plt.imshow(x_thresh, interpolation='nearest')
 
-    inds = np.arange(x.size).reshape(x.shape)
+    inds = np.arange(x.size).reshape(x.shape).astype(np.int64)
     horz = np.c_[inds[:, :-1].ravel(), inds[:, 1:].ravel()]
     vert = np.c_[inds[:-1, :].ravel(), inds[1:, :].ravel()]
     edges = np.vstack([horz, vert])
@@ -44,7 +44,7 @@ def example_multinomial():
     x_thresh = np.argmax(unaries_noisy, axis=2)
     unaries_noisy = np.exp(unaries_noisy).reshape(-1, 3)
 
-    inds = np.arange(x.size).reshape(x.shape)
+    inds = np.arange(x.size).reshape(x.shape).astype(np.int64)
     horz = np.c_[inds[:, :-1].ravel(), inds[:, 1:].ravel()]
     vert = np.c_[inds[:-1, :].ravel(), inds[1:, :].ravel()]
     edges = np.vstack([horz, vert])
