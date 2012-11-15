@@ -2,6 +2,27 @@ from daicrf import potts_mrf, mrf
 import matplotlib.pyplot as plt
 import numpy as np
 
+def compare_algorithms():
+    x = np.ones((10, 10))
+    x[:, 5:] = -1
+    x_noisy = x + np.random.normal(0, 1.8, size=x.shape)
+
+    inds = np.arange(x.size).reshape(x.shape).astype(np.int64)
+    horz = np.c_[inds[:, :-1].ravel(), inds[:, 1:].ravel()]
+    vert = np.c_[inds[:-1, :].ravel(), inds[1:, :].ravel()]
+    edges = np.vstack([horz, vert])
+
+    #unaries = 2 * x_thresh.astype(np.float).ravel() - 1
+    unaries = x_noisy.ravel()
+    unaries = np.c_[np.exp(-unaries), np.exp(unaries)]
+    pairwise = np.exp(np.eye(2) * 4.1)
+    algorithms = ["maxprod", "gibbs", "jt", "trw", "treeep"]
+    fix, axes = plt.subplots(len(algorithms))
+    for ax, alg in zip(axes, algorithms):
+        result_mrf = mrf(unaries, edges, pairwise, verbose=1, alg=alg)
+        ax.matshow(result_mrf.reshape(x.shape))
+    plt.show()
+
 
 def example_binary():
     x = np.ones((10, 10))
@@ -24,11 +45,11 @@ def example_binary():
     unaries = x_noisy.ravel()
     unaries = np.c_[np.exp(-unaries), np.exp(unaries)]
 
-    result = potts_mrf(unaries, edges, 1.1)
+    result = potts_mrf(unaries, edges, 1.1, verbose=1)
     plt.subplot(144)
     plt.imshow(result.reshape(x.shape), interpolation='nearest')
 
-    result_mrf = mrf(unaries, edges, np.exp(np.eye(2) * 1.1))
+    result_mrf = mrf(unaries, edges, np.exp(np.eye(2) * 1.1), verbose=1, alg="trw")
     plt.matshow(result_mrf.reshape(x.shape), interpolation='nearest')
     plt.show()
 
@@ -53,7 +74,7 @@ def example_multinomial():
     binaries[-1, 0] = 0
     binaries[0, -1] = 0
     print(binaries)
-    result_mrf = mrf(unaries_noisy, edges, np.exp(binaries))
+    result_mrf = mrf(unaries_noisy, edges, np.exp(binaries), alg="jt")
     plt.subplot(141)
     plt.imshow(x, interpolation="nearest")
     plt.subplot(142)
@@ -65,4 +86,5 @@ def example_multinomial():
     plt.show()
 
 if __name__ == "__main__":
-    example_binary()
+    #example_binary()
+    compare_algorithms()

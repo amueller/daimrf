@@ -3,6 +3,9 @@
 #include <dai/alldai.h>  // Include main libDAI header file
 #include <dai/bp.h>     // believe propagation
 #include <dai/jtree.h>  // junction tree
+#include <dai/gibbs.h>
+#include <dai/treeep.h>
+#include <dai/trwbp.h>
 #include<boost/python.hpp>
 
 #define PY_ARRAY_UNIQUE_SYMBOL PyArrayDaiCRF
@@ -29,7 +32,7 @@ void validate_unaries_edges(PyArrayObject* unaries, PyArrayObject* edges)
        throw runtime_error("Edges must be of size n_edges x 2.");
 }
 
-PyObject * mrf(PyArrayObject* unaries, PyArrayObject* edges, PyArrayObject* edge_potentials, size_t verbose) {
+PyObject * mrf(PyArrayObject* unaries, PyArrayObject* edges, PyArrayObject* edge_potentials, string alg, size_t verbose) {
     // validate input
     validate_unaries_edges(unaries, edges);
     if (PyArray_NDIM(edge_potentials) != 2)
@@ -82,22 +85,55 @@ PyObject * mrf(PyArrayObject* unaries, PyArrayObject* edges, PyArrayObject* edge
 
     // Store the constants in a PropertySet object
     PropertySet opts;
+    if (alg == "jt")
     {
         JTree jt( fg, opts("updates",string("HUGIN"))("inference",string("MAXPROD")));
         jt.init();
         jt.run();
         mpstate = jt.findMaximum();
     }
-    //opts.set("maxiter",maxiter);  // Maximum number of iterations
-    //opts.set("tol",tol);          // Tolerance for convergence
-    //opts.set("verbose",verbose);     // Verbosity (amount of output generated)
+    else if (alg == "treeep")
+    {
+        opts.set("type", string("ORG"));  // Maximum number of iterations
+        opts.set("tol", 1e-4);          // Tolerance for convergence
+        TreeEP ep(fg, opts);
+        ep.init();
+        ep.run();
+        mpstate = ep.findMaximum();
+    }
+    else if (alg == "maxprod"){
+        opts.set("maxiter", (size_t)10);  // Maximum number of iterations
+        opts.set("tol", 1e-4);          // Tolerance for convergence
+        opts.set("verbose",verbose);     // Verbosity (amount of output generated)
 
-    //BP mp(fg, opts("updates",string("SEQRND"))("logdomain",false)("inference",string("MAXPROD"))("damping",string("0.1")));
-    //mp.init();
-    //mp.run();
-    //vector<size_t> mpstate = mp.findMaximum();
+        BP mp(fg, opts("updates",string("SEQRND"))("logdomain",false)("inference",string("MAXPROD"))("damping",string("0.1")));
+        mp.init();
+        mp.run();
+        mpstate = mp.findMaximum();
+    }
+    else if (alg == "gibbs"){
+        opts.set("maxiter", size_t(100));   // number of Gibbs sampler iterations
+        opts.set("burnin", size_t(0));
+        opts.set("verbose", size_t(1));
+        Gibbs gibbsSampler(fg, opts);
+        gibbsSampler.init();
+        gibbsSampler.run();
+        mpstate = gibbsSampler.findMaximum();
+    }
+    else if (alg == "trw")
+    {
+        opts.set("tol", tol);
+        opts.set("logdomain", false);
+        opts.set("updates", string("SEQRND"));
+        TRWBP trw( fg, opts);
+        trw.init();
+        trw.run();
+        mpstate = trw.findMaximum();
+    }
+    else {
+        throw runtime_error("Invalid algorithm.");
+    }
     npy_intp map_size = n_vertices;
-    std::cout << " n_vertices: " << n_vertices << std::endl;
     PyObject * map = PyArray_SimpleNew(1, &map_size, PyArray_INT);
     if (map == NULL)
         throw runtime_error("Could not allocate output array.");
@@ -176,6 +212,6 @@ BOOST_PYTHON_MODULE(daicrf){
     bp::converter::registry::insert(
 	    &extract_pyarray, boost::python::type_id<PyArrayObject>());
     bp::def("potts_mrf", potts_mrf, (bp::arg("unaries"), bp::arg("egdges"), bp::arg("edge_strength"), bp::arg("verbose")=0));
-    bp::def("mrf", mrf, (bp::arg("unaries"), bp::arg("egdges"), bp::arg("edge_weights"), bp::arg("verbose")=0));
+    bp::def("mrf", mrf, (bp::arg("unaries"), bp::arg("egdges"), bp::arg("edge_weights"), bp::arg("alg"), bp::arg("verbose")=0));
     import_array();
 }
