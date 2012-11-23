@@ -103,7 +103,7 @@ PyObject * mrf(PyArrayObject* unaries, PyArrayObject* edges, PyArrayObject* edge
     }
     else if (alg == "maxprod"){
         opts.set("maxiter", (size_t)10);  // Maximum number of iterations
-        opts.set("tol", 1e-4);          // Tolerance for convergence
+        opts.set("tol", 1e-8);          // Tolerance for convergence
         opts.set("verbose",verbose);     // Verbosity (amount of output generated)
 
         BP mp(fg, opts("updates",string("SEQRND"))("logdomain",false)("inference",string("MAXPROD"))("damping",string("0.1")));
@@ -122,7 +122,7 @@ PyObject * mrf(PyArrayObject* unaries, PyArrayObject* edges, PyArrayObject* edge
     }
     else if (alg == "trw")
     {
-        opts.set("tol", tol);
+        opts.set("tol", 1e-2);
         opts.set("logdomain", false);
         opts.set("updates", string("SEQRND"));
         TRWBP trw( fg, opts);
