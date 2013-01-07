@@ -3,10 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from time import time
 
-from gco_python import cut_simple
 from daicrf import mrf
-from pyqpbo import alpha_expansion_grid
-from pystruct.lp_new import solve_lp
 
 from IPython.core.debugger import Tracer
 tracer = Tracer()
@@ -67,23 +64,9 @@ def example():
 
     pairwise = .10 * np.eye(n_disps)
     newshape = unaries.shape[:2]
-    start = time()
-    potts_cut = cut_simple(unaries, -pairwise.astype(np.int32))
-    time_gc = time() - start
-    energy_gc = energy(unaries, potts_cut, -pairwise)
-
-    start = time()
-    qpbo = alpha_expansion_grid(unaries, -pairwise.astype(np.int32))
-    time_qpbo = time() - start
-    energy_qpbo = energy(unaries, qpbo, -pairwise)
 
     x, y = np.ogrid[:n_disps, :n_disps]
-    one_d_topology = 5 * np.abs(x - y).astype(np.int32).copy("C")
-
-    start = time()
-    one_d_cut = cut_simple(unaries, 5 * one_d_topology)
-    time_gc1d = time() - start
-    #energy_gc1d = energy(unaries, one_d_cut, -pairwise)
+    #one_d_topology = 5 * np.abs(x - y).astype(np.int32).copy("C")
 
     # libdai works in exp space
     pairwise_exp = np.exp(pairwise)
@@ -93,27 +76,26 @@ def example():
     horz = np.c_[inds[:, :-1].ravel(), inds[:, 1:].ravel()]
     vert = np.c_[inds[:-1, :].ravel(), inds[1:, :].ravel()]
     edges = np.vstack([horz, vert]).copy()
+
     #asdf = np.random.permutation(len(edges))
     #edges = edges[asdf]
+
     start = time()
     max_product = mrf(np.exp(-unaries.reshape(-1, n_disps)),
                       edges, pairwise_exp, alg='maxprod')
     time_maxprod = time() - start
     energy_max_prod = energy(unaries, max_product.reshape(newshape), -pairwise)
     start = time()
-    #trw = mrf(np.exp(-unaries.reshape(-1, n_disps)), edges,
-               #pairwise_exp, alg='trw')
-    lp = solve_lp(unaries.reshape(-1, n_disps), edges, -pairwise)
-    lp = lp.reshape([newshape[0], newshape[1], lp.shape[-1]])
-    trw = np.argmax(lp, axis=-1)
+    trw = mrf(np.exp(-unaries.reshape(-1, n_disps)),
+              edges, pairwise_exp, alg='trw')
     time_trw = time() - start
-    plt.matshow(lp.max(axis=-1) > .9)
     energy_trw = energy(unaries, trw, -pairwise)
 
-    #start = time()
-    #treeep = mrf(np.exp(-unaries.reshape(-1, n_disps)),
-                  #edges, pairwise, alg='treeep')
-    #time_treeep = time() - start
+    start = time()
+    treeep = mrf(np.exp(-unaries.reshape(-1, n_disps)),
+                 edges, pairwise, alg='treeep')
+    time_treeep = time() - start
+    energy_treeep = energy(unaries, treeep.reshape(newshape), -pairwise)
 
     start = time()
     gibbs = mrf(np.exp(-unaries.reshape(-1, n_disps)),
@@ -124,25 +106,22 @@ def example():
     fix, axes = plt.subplots(3, 3, figsize=(16, 8))
     energy_argmax = energy(unaries, np.argmin(unaries, axis=2), -pairwise)
 
-    energies = np.array([energy_argmax, energy_gibbs, energy_qpbo,
-                         energy_max_prod, energy_gc, energy_trw])
-    (energy_argmax, energy_gibbs, energy_qpbo,
-     energy_max_prod, energy_gc, energy_trw) = energies - energy_gc
+    #energies = np.array([energy_argmax, energy_gibbs, energy_max_prod,
+                         #energy_treeep, energy_trw])
+    #(energy_argmax, energy_gibbs, energy_qpbo,
+     #energy_max_prod, energy_treep, energy_trw) = energies - energy_gc
 
     axes[0, 0].imshow(img1)
     axes[0, 1].imshow(img2)
     axes[0, 2].set_title("unaries only e=%f" % (energy_argmax))
     axes[0, 2].matshow(np.argmin(unaries, axis=2), vmin=0, vmax=8)
-    axes[1, 0].set_title("gc %.2fs, e=%f" % (time_gc, energy_gc))
-    axes[1, 0].matshow(potts_cut.reshape(newshape), vmin=0, vmax=8)
-    axes[1, 1].set_title("gc 1d %.2fs" % time_gc1d)
-    axes[1, 1].matshow(one_d_cut.reshape(newshape), vmin=0, vmax=8)
-    axes[1, 2].set_title("mp %.2fs, e=%f" % (time_maxprod, energy_max_prod))
+    axes[1, 0].set_title("treeep %.2fs, e=%f" % (time_treeep, energy_treeep))
+    axes[1, 0].matshow(treeep.reshape(newshape), vmin=0, vmax=8)
+    axes[1, 2].set_title("max-product %.2fs, e=%f"
+                         % (time_maxprod, energy_max_prod))
     axes[1, 2].matshow(max_product.reshape(newshape), vmin=0, vmax=8)
     axes[2, 0].set_title("trw %.2fs, e=%f" % (time_trw, energy_trw))
     axes[2, 0].matshow(trw.reshape(newshape), vmin=0, vmax=8)
-    axes[2, 1].set_title("qpbo %.2fs, e=%f" % (time_qpbo, energy_qpbo))
-    axes[2, 1].matshow(qpbo.reshape(newshape), vmin=0, vmax=8)
     axes[2, 2].set_title("gibbs %.2fs, e=%f" % (time_gibbs, energy_gibbs))
     axes[2, 2].matshow(gibbs.reshape(newshape), vmin=0, vmax=8)
     for ax in axes.ravel():
