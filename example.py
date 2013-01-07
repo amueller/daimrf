@@ -17,6 +17,8 @@ def compare_algorithms():
     unaries = x_noisy.ravel()
     unaries = np.c_[np.exp(-unaries), np.exp(unaries)]
     pairwise = np.exp(np.eye(2) * 4.1)
+    # repeat pairwise for each edge
+    pairwise = np.repeat(pairwise[np.newaxis, :, :], len(edges), axis=0)
     algorithms = ["maxprod", "gibbs", "jt", "trw", "treeep"]
     fix, axes = plt.subplots(1, len(algorithms))
     for ax, alg in zip(axes, algorithms):
@@ -56,8 +58,10 @@ def example_binary():
     result = potts_mrf(unaries, edges, 1.1, verbose=1)
     axes[3].matshow(result.reshape(x.shape))
 
-    result_mrf = mrf(unaries, edges, np.exp(np.eye(2) * 1.1), verbose=1,
-                     alg="trw")
+    # repeat pairwise for each edge
+    pairwise = np.exp(np.eye(2) * 1.1)
+    pairwise = np.repeat(pairwise[np.newaxis, :, :], len(edges), axis=0)
+    result_mrf = mrf(unaries, edges, pairwise, verbose=1, alg="trw")
     axes[4].set_title("MRF")
     axes[4].matshow(result_mrf.reshape(x.shape))
     for ax in axes:
@@ -82,11 +86,13 @@ def example_multinomial():
     vert = np.c_[inds[:-1, :].ravel(), inds[1:, :].ravel()]
     edges = np.vstack([horz, vert])
     result = potts_mrf(unaries_noisy, edges, 1.1)
-    binaries = np.eye(3) + np.ones((1, 1))
-    binaries[-1, 0] = 0
-    binaries[0, -1] = 0
-    print(binaries)
-    result_mrf = mrf(unaries_noisy, edges, np.exp(binaries), alg="jt")
+    pairwise = np.eye(3) + np.ones((1, 1))
+    pairwise[-1, 0] = 0
+    pairwise[0, -1] = 0
+    print(pairwise)
+    # repeat pairwise for each edge
+    pairwise = np.repeat(pairwise[np.newaxis, :, :], len(edges), axis=0)
+    result_mrf = mrf(unaries_noisy, edges, np.exp(pairwise), alg="jt")
     plot, axes = plt.subplots(1, 4)
     axes[0].set_title("original")
     axes[0].matshow(x)
@@ -102,6 +108,6 @@ def example_multinomial():
     plt.show()
 
 if __name__ == "__main__":
-    #example_binary()
+    example_binary()
     #example_multinomial()
-    compare_algorithms()
+    #compare_algorithms()

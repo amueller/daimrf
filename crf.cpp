@@ -35,8 +35,8 @@ void validate_unaries_edges(PyArrayObject* unaries, PyArrayObject* edges)
 PyObject * mrf(PyArrayObject* unaries, PyArrayObject* edges, PyArrayObject* edge_potentials, string alg, size_t verbose) {
     // validate input
     validate_unaries_edges(unaries, edges);
-    if (PyArray_NDIM(edge_potentials) != 2)
-        throw runtime_error("Edge potentials must be n_classes x n_classes");
+    if (PyArray_NDIM(edge_potentials) != 3)
+        throw runtime_error("Edge potentials must be n_edges x n_classes x n_classes");
    if (PyArray_TYPE(edge_potentials) != PyArray_FLOAT64)
        throw runtime_error("Edge potentials must be double.");
 
@@ -46,8 +46,8 @@ PyObject * mrf(PyArrayObject* unaries, PyArrayObject* edges, PyArrayObject* edge
     int n_vertices = unaries_dims[0];
     int n_states = unaries_dims[1];
     int n_edges = edges_dims[0];
-    if ((edge_potential_dims[0] != n_states) or (edge_potential_dims[1] != n_states))
-        throw runtime_error("Edge potentials must be n_classes x n_classes");
+    if ((edge_potential_dims[0] != n_edges) || (edge_potential_dims[1] != n_states) || (edge_potential_dims[2] != n_states))
+        throw runtime_error("Edge potentials must be n_edges x n_classes x n_classes.");
     if (verbose > 0)
         cout << "n_vertices: " << n_vertices << " n_states: " << n_states << " n_edges: " << n_edges << endl;
 
@@ -73,7 +73,7 @@ PyObject * mrf(PyArrayObject* unaries, PyArrayObject* edges, PyArrayObject* edge
         Factor pairwise_factor(VarSet(vars[e0], vars[e1]));
         for (size_t i = 0; i < n_states; i++)
             for(size_t j = 0; j < n_states; j++){
-                pairwise_factor.set(i + n_states * j, *((double*)PyArray_GETPTR2(edge_potentials, i, j)));
+                pairwise_factor.set(i + n_states * j, *((double*)PyArray_GETPTR3(edge_potentials, e, i, j)));
             }
         factors.push_back(pairwise_factor);
     }
