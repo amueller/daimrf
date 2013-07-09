@@ -70,10 +70,16 @@ PyObject * mrf(PyArrayObject* unaries, PyArrayObject* edges, PyArrayObject* edge
     for(size_t e = 0; e < n_edges; e++){
         int e0 = *((long*)PyArray_GETPTR2(edges, e, 0));
         int e1 = *((long*)PyArray_GETPTR2(edges, e, 1));
-        Factor pairwise_factor(VarSet(vars[e0], vars[e1]));
+        VarSet varpair(vars[e0], vars[e1]);
+        Factor pairwise_factor(varpair);
+        std::map<Var, size_t> assignment;
         for (size_t i = 0; i < n_states; i++)
             for(size_t j = 0; j < n_states; j++){
-                pairwise_factor.set(i + n_states * j, *((double*)PyArray_GETPTR3(edge_potentials, e, i, j)));
+                assignment[vars[e0]] = i;
+                assignment[vars[e1]] = j;
+                pairwise_factor.set(
+                    calcLinearState(varpair, assignment),
+                    *((double*)PyArray_GETPTR3(edge_potentials, e, i, j)));
             }
         factors.push_back(pairwise_factor);
     }
