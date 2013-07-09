@@ -72,9 +72,9 @@ PyObject * mrf(PyArrayObject* unaries, PyArrayObject* edges, PyArrayObject* edge
         int e1 = *((long*)PyArray_GETPTR2(edges, e, 1));
         VarSet varpair(vars[e0], vars[e1]);
         Factor pairwise_factor(varpair);
+        std::map<Var, size_t> assignment;
         for (size_t i = 0; i < n_states; i++)
             for(size_t j = 0; j < n_states; j++){
-                std::map<Var, size_t> assignment;
                 assignment[vars[e0]] = i;
                 assignment[vars[e1]] = j;
                 pairwise_factor.set(
